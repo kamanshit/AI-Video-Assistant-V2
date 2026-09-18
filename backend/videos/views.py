@@ -12,9 +12,12 @@ from .models import Video
 # Create your views here.
 
 class VideoViewSet(ModelViewSet):
-    queryset         = Video.objects.all()
     serializer_class = VideoSerializer
     permission_classes = [IsAuthenticated]
+
+
+    def get_queryset(self):
+        return Video.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
         serializer.save(user = self.request.user)
