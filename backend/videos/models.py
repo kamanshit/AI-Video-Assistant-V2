@@ -33,6 +33,7 @@ class Video(models.Model):
         choices=STATUS_CHOICES,
         default="uploaded"
     )
+    error_message = models.TextField(blank=True, null=True)
 
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -40,3 +41,16 @@ class Video(models.Model):
 
     def __str__(self):
         return self.title
+
+class Question(models.Model):
+    video = models.ForeignKey(
+        Video,
+        on_delete=models.CASCADE,
+        related_name="questions"
+    )
+    question = models.TextField()
+    answer = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.question
