@@ -7,20 +7,104 @@ from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
 
 
-from .serializers import VideoSerializer, RegisterSerializer
-from .models import Video
+from .serializers import VideoSerializer,VideoListSerializer, RegisterSerializer, QuestionSerializer
+from .services.video_service import VideoService
+from .services.vector_service import VectorService
+from .services.rag_service import RAGService
+from .models import Video, Question
 # Create your views here.
 
 class VideoViewSet(ModelViewSet):
     serializer_class = VideoSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_serializer_class(self):
+        if self.action == "list":
+            return VideoListSerializer
 
+        return VideoSerializer
+    
     def get_queryset(self):
-        return Video.objects.filter(user=self.request.user)
+        queryset =  Video.objects.filter(user=self.request.user)
+
+        status_filter = self.request.query_params.get('status')
+
+        if status_filter:
+            queryset = queryset.filter(status=status)
+
+        return queryset
 
     def perform_create(self, serializer):
-        serializer.save(user = self.request.user)
+        video = serializer.save(user=self.request.user)
+
+        VideoService().process_video(video)
+
+    def destroy(self, request, *args, **kwargs):
+        video = self.get_object()
+
+        vector_service = VectorService()
+        vector_service.delete_video_vectors(video.id)
+
+        return super().destroy(request, *args, **kwargs)
+
+class QuestionAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        questions = Question.objects.filter(
+            video__user=request.user
+        ).order_by('-created_at')
+
+        video_id = request.query_params.get("video")
+
+        if video_id:
+            questions = questions.filter(video_id=video_id)
+
+        serializer = QuestionSerializer(
+            questions,
+            many=True
+        )
+
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = QuestionSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        video = serializer.validated_data["video"]
+        question = serializer.validated_data["question"]
+
+        if video.user != request.user:
+            return Response(
+                {"error": "Video not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        vector_service = VectorService()
+        vector_store = vector_service.get_vector_store()
+
+        rag_service = RAGService()
+        rag_chain = rag_service.build_rag_chain(
+            vector_store,
+            video.id
+            )
+
+        answer = rag_service.ask_question(
+            rag_chain,
+            question
+        )
+
+        question_obj = serializer.save(answer=answer)
+
+        return Response(
+            QuestionSerializer(question_obj).data,
+            status=status.HTTP_201_CREATED
+        )
 
 class RegisterAPIView(APIView):
     def post(self, request):

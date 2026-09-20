@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Video
+from .models import Video,Question
 from django.contrib.auth.models import User
 
 class VideoSerializer(serializers.ModelSerializer):
@@ -16,6 +16,7 @@ class VideoSerializer(serializers.ModelSerializer):
             'language',
             'transcript',
             'status',
+            'error_message',
             'created_at',
             'updated_at',
         ]
@@ -25,6 +26,7 @@ class VideoSerializer(serializers.ModelSerializer):
             'user',
             'transcript',
             'status',
+            'error_message',
             'created_at',
             'updated_at',
         ]
@@ -46,7 +48,26 @@ class VideoSerializer(serializers.ModelSerializer):
                 "Provide either a video source URL or a video file."
             )
 
+        if source and file:
+            raise serializers.ValidationError(
+                "Provide either a video source URL or a video file, not both."
+            )
+
         return attrs
+
+class VideoListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Video
+        fields = [
+            'id',
+            'title',
+            'language',
+            'status',
+            'error_message',
+            'created_at',
+            'updated_at',
+        ]
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -68,3 +89,18 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 
+class QuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Question
+        fields = [
+            'id',
+            'video',
+            'question',
+            'answer',
+            'created_at',
+        ]
+        read_only_fields = [
+            'id',
+            'answer',
+            'created_at',
+        ]
