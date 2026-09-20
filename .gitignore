@@ -1,18 +1,18 @@
-# Virtual environment
 venv/
-
-# Environment variables
 .env
-
-# Python
 __pycache__/
 *.py[cod]
-
-# Django
 db.sqlite3
-
-# macOS
 .DS_Store
-
-# IDE
 .vscode/
+
+# Generated media
+media/
+backend/media/
+
+# Vector database
+vector_db/
+backend/vector_db/
+
+# Test media
+test_media/
