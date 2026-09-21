@@ -9,9 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 
 
 from .serializers import VideoSerializer,VideoListSerializer, RegisterSerializer, QuestionSerializer
-from .services.video_service import VideoService
-from .services.vector_service import VectorService
-from .services.rag_service import RAGService
+
 from .models import Video, Question
 # Create your views here.
 
@@ -36,6 +34,8 @@ class VideoViewSet(ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
+        from .services.video_service import VideoService
+
         video = serializer.save(user=self.request.user)
 
         try:
@@ -46,6 +46,7 @@ class VideoViewSet(ModelViewSet):
             })
 
     def destroy(self, request, *args, **kwargs):
+        from .services.vector_service import VectorService
         video = self.get_object()
 
         vector_service = VectorService()
@@ -54,6 +55,7 @@ class VideoViewSet(ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
 class QuestionAPIView(APIView):
+    
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -74,6 +76,8 @@ class QuestionAPIView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
+        from .services.vector_service import VectorService
+        from .services.rag_service import RAGService
         serializer = QuestionSerializer(data=request.data)
 
         if not serializer.is_valid():
