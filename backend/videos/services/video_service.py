@@ -180,6 +180,9 @@ class VideoService:
             chunks = self.process_input(source)
             transcript = self.transcribe_chunks(chunks)
 
+            if not transcript.strip():
+                raise ValueError("No speech could be detected in the video.")
+
             video.transcript = transcript
             video.save(update_fields=["transcript"])
 
@@ -193,7 +196,7 @@ class VideoService:
 
             return video
 
-        except Exception:
+        except Exception as e:
             video.status = "failed"
             video.error_message = str(e)
             video.save(update_fields=["status", "error_message"])

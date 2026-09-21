@@ -1,4 +1,5 @@
 from rest_framework.response import Response
+from rest_framework import serializers
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
 from rest_framework import status
@@ -25,19 +26,24 @@ class VideoViewSet(ModelViewSet):
         return VideoSerializer
     
     def get_queryset(self):
-        queryset =  Video.objects.filter(user=self.request.user)
+        queryset = Video.objects.filter(user=self.request.user).order_by("-created_at")
 
         status_filter = self.request.query_params.get('status')
 
         if status_filter:
-            queryset = queryset.filter(status=status)
+            queryset = queryset.filter(status=status_filter)
 
         return queryset
 
     def perform_create(self, serializer):
         video = serializer.save(user=self.request.user)
 
-        VideoService().process_video(video)
+        try:
+            VideoService().process_video(video)
+        except ValueError as e:
+            raise serializers.ValidationError({
+                "error": str(e)
+            })
 
     def destroy(self, request, *args, **kwargs):
         video = self.get_object()
